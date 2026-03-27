@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Church Growth Portal - Register</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #11d694; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .register-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 350px; }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        input[type="text"], input[type="password"], select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #11d694; color: white; border: none; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; }
+        button:hover { background: #0fb87f; }
+        .login-link { text-align: center; margin-top: 20px; }
+        .login-link a { color: #3498db; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="register-box">
+        <h2><i class="fas fa-church"></i> Create Account</h2>
+        <form action="{{ url_for('register') }}" method="POST">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <select name="role" required>
+                <option value="" disabled selected>Select Role</option>
+                <option value="admin">Admin</option>
+                <option value="treasurer">Treasurer</option>
+                <option value="secretary">Secretary</option>
+            </select>
+            <button type="submit">Register</button>
+        </form>
+        <div class="login-link">
+            <a href="{{ url_for('login_page') }}">Already have an account? Login here</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+/* Layout for the Results Dashboard */
+
+
+
+.results-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-color: #916691;
+}
+
+.graph-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two graphs side-by-side */
+    gap: 80px;
+    width: 90%;
+    margin-top: 60px;
+}
+
+.chart-box {
+    background: rgb(213, 216, 218);
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    
+}
+.analysis-alert {
+    width: 90%;
+    background: #2c3e50;
+    color: #ecf0f1;
+    padding: 90px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+}
+
+body {
+    background-color: #136449; /* A light grey/blue professional look */
+    /* OR use a name */
+    background-color: rgb(38, 116, 142);
+    background-position: center;
+    background-size: cover;
+    background-attachment: fixed; 
+}

@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Saturday Data Entry & Edit</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #d65fa7; margin: 0; }
+        
+        .top-nav { 
+            background: #2c3e50; padding: 15px; display: flex; 
+            justify-content: space-between; align-items: center; color: white; 
+            margin: -20px -20px 20px -20px; 
+        }
+        .top-nav a { color: white; text-decoration: none; margin-left: 20px; font-weight: bold; }
+        .btn-back-main { background: #11d694; padding: 8px 15px; border-radius: 5px; color: white !important; }
+
+        /* OCR Scan Section */
+        .scan-section {
+            background: white; padding: 20px; border-radius: 8px; 
+            margin-bottom: 20px; border: 2px dashed #3498db;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .scan-section h3 { color: #2c3e50; margin-top: 0; }
+        .scan-section input[type="file"] {
+            padding: 10px; border: 1px solid #ccc; border-radius: 4px;
+            width: 300px; background: white;
+        }
+        .scan-btn {
+            background: #3498db; color: white; border: none;
+            padding: 10px 20px; border-radius: 4px; cursor: pointer;
+            font-weight: bold; margin-left: 10px;
+        }
+        .scan-btn:hover { background: #2980b9; }
+        .scan-btn:disabled { background: #95a5a6; cursor: not-allowed; }
+
+        .saturday-row { 
+            background: white; padding: 15px; margin-bottom: 15px; 
+            border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            border-left: 5px solid #2c3e50; 
+            position: relative;
+        }
+        .existing-record { border-left: 5px solid #9b59b6; background: #fdf7ff; } 
+        
+        input, select { 
+            margin: 5px; padding: 8px; border: 1px solid #ccc; 
+            border-radius: 4px; width: 120px; 
+        }
+        
+        .btn-generate { background: #2c3e50; color: white; padding: 10px 15px; border: none; cursor: pointer; border-radius: 5px; }
+        .btn-continue { background: #9b59b6; color: white; padding: 10px 15px; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; margin-right: 10px; }
+        .btn-save { background: #11d694; color: white; padding: 15px 30px; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; margin-top: 20px; width: 100%; }
+        .btn-undo { background: #f39c12; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-undo:hover { background: #e67e22; }
+        .btn-undo:disabled { background: #95a5a6; cursor: not-allowed; }
+        
+        h2 { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        h4 { margin-top: 0; color: #2c3e50; }
+        label { font-size: 0.9em; font-weight: bold; color: #555; }
+        
+        .extracted-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f8ff;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .delete-row-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .delete-row-btn:hover { background: #c0392b; }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .undo-notification {
+            position: fixed; 
+            bottom: 20px; 
+            right: 20px; 
+            background: #2c3e50; 
+            color: white; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1000; 
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .undo-notification button {
+            background: none; 
+            border: none; 
+            color: white; 
+            margin-left: 15px; 
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+        .undo-notification button:hover { opacity: 0.8; }
+    </style>
+</head>
+<body>
+    <div class="top-nav">
+        <span>Church Management > Data Entry</span>
+        <div>
+            <a href="{{ url_for('dashboard') }}" class="btn-back-main">← Back to Dashboard</a>
+            <a href="{{ url_for('analysis') }}">Analysis</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </div>
+
+    <h2>Bulk Saturday Data Entry</h2>
+    
+    <!-- OCR SCAN SECTION -->
+    <div class="scan-section">
+        <h3><i class="fas fa-camera"></i> Quick Scan Document</h3>
+        <p>Upload a photo of the church register to auto-fill attendance fields (Men, Women, Youth, Children, Tithes, Offerings)</p>
+        <input type="file" id="imageInput" accept="image/*">
+        <button type="button" onclick="performScan()" id="scanBtn" class="scan-btn">
+            <i class="fas fa-search"></i> Extract Data
+        </button>
+        <div id="scanStatus" style="margin-top: 10px; font-style: italic;"></div>
+    </div>
+
+    <div style="margin-bottom: 20px; background: white; padding: 20px; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div>
+                <label style="color: #333;">How many new Saturdays? </label>
+                <input type="number" id="sat_count" min="1" max="10" value="1" style="width: 60px;">
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="btn-continue" onclick="continueLastStop()">
+                    Continue from Last Stop (Load/Edit)
+                </button>
+                <button class="btn-generate" onclick="generateFields()">
+                    + Add Blank Fields
+                </button>
+            </div>
+        </div>
+        
+        <!-- Undo Button Container (will be populated by JavaScript) -->
+        <div id="undoContainer"></div>
+    </div>
+
+    <div id="bulk_container"></div>
+
+    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-top: 5px solid #f1c40f;">
+        <h3 style="margin-top:0;">Global Performance Targets</h3>
+        <label>Target Attendance:</label>
+        <input type="number" id="global_target_att" placeholder="e.g. 200">
+        <label style="margin-left: 20px;">Target Offering:</label>
+        <input type="number" id="global_target_off" placeholder="e.g. 5000">
+        <button type="button" onclick="saveTargets()" style="background:#f1c40f; color:#2c3e50; padding:8px 15px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">
+            Update Targets
+        </button>
+    </div>
+
+    <button id="save_btn" class="btn-save" style="display:none;" onclick="saveAllData()">
+        Save All Changes & View Results
+    </button>
+
+    <script>
+        // ============================================================================
+        // UNDO STACK USING COMMAND PATTERN
+        // ============================================================================
+        
+        class UndoStack {
+            constructor(maxSize = 30) {
+                this.stack = [];
+                this.maxSize = maxSize;
+            }
+            
+            push(command) {
+                this.stack.push(command);
+                // Maintain stack size limit
+                if (this.stack.length > this.maxSize) {
+                    this.stack.shift();
+                }
+                this.updateUndoButton();
+            }
+            
+            pop() {
+                if (this.isEmpty()) return null;
+                const command = this.stack.pop();
+                this.updateUndoButton();
+                return command;
+            }
+            
+            isEmpty() {
+                return this.stack.length === 0;
+            }
+            
+            peek() {
+                return this.stack[this.stack.length - 1];
+            }
+            
+            clear() {
+                this.stack = [];
+                this.updateUndoButton();
+            }
+            
+            size() {
+                return this.stack.length;
+            }
+            
+            updateUndoButton() {
+                const undoBtn = document.getElementById('undoBtn');
+                const undoCount = document.getElementById('undoCount');
+                const lastAction = document.getElementById('lastAction');
+                
+                if (undoBtn) {
+                    undoBtn.disabled = this.isEmpty();
+                    undoBtn.title = this.isEmpty() ? 'Nothing to undo' : `Undo (${this.size()} actions)`;
+                }
+                if (undoCount) {
+                    undoCount.textContent = this.size();
+                }
+                if (lastAction && !this.isEmpty()) {
+                    const command = this.peek();
+                    lastAction.textContent = `Last: ${command.getDescription ? command.getDescription() : 'action'}`;
+                } else if (lastAction) {
+                    lastAction.textContent = '';
+                }
+            }
+        }
+        
+        // Command classes for different actions
+        class AddRowCommand {
+            constructor(rowData, rowElement, rowIndex) {
+                this.type = 'ADD_ROW';
+                this.rowData = rowData;
+                this.rowElement = rowElement;
+                this.rowIndex = rowIndex;
+                this.timestamp = new Date().toISOString();
+            }
+            
+            execute() {
+                // Row already added when command created
+            }
+            
+            undo() {
+                if (this.rowElement && this.rowElement.parentNode) {
+                    this.rowElement.remove();
+                }
+            }
+            
+            getDescription() {
+                return `Added row with Sat #${this.rowData.saturdayNo || 'new'}`;
+            }
+        }
+        
+        class EditRowCommand {
+            constructor(rowId, field, oldValue, newValue) {
+                this.type = 'EDIT_ROW';
+                this.rowId = rowId;
+                this.field = field;
+                this.oldValue = oldValue;
+                this.newValue = newValue;
+                this.timestamp = new Date().toISOString();
+            }
+            
+            execute() {
+                // Apply new values (handled by form)
+            }
+            
+            undo() {
+                const row = document.querySelector(`[data-row-id="${this.rowId}"]`);
+                if (row) {
+                    const input = row.querySelector(`.${this.field}`);
+                    if (input) {
+                        input.value = this.oldValue;
+                        // Trigger change event
+                        const event = new Event('change', { bubbles: true });
+                        input.dispatchEvent(event);
+                    }
+                }
+            }
+            
+            getDescription() {
+                return `Edited ${this.field} in row ${this.rowId.substring(0, 8)}...`;
+            }
+        }
+        
+        class DeleteRowCommand {
+            constructor(rowElement, rowData, rowId) {
+                this.type = 'DELETE_ROW';
+                this.rowElement = rowElement;
+                this.rowData = {...rowData};
+                this.rowId = rowId;
+                this.nextSibling = rowElement.nextSibling;
+                this.parentNode = rowElement.parentNode;
+                this.timestamp = new Date().toISOString();
+            }
+            
+            execute() {
+                this.rowElement.remove();
+            }
+            
+            undo() {
+                if (this.nextSibling && this.nextSibling.parentNode) {
+                    this.parentNode.insertBefore(this.rowElement, this.nextSibling);
+                } else if (this.parentNode) {
+                    this.parentNode.appendChild(this.rowElement);
+                }
+                // Reattach event listeners by reinitializing
+                initializeRowListeners(this.rowElement);
+            }
+            
+            getDescription() {
+                return `Deleted row with Sat #${this.rowData.saturdayNo || 'new'}`;
+            }
+        }
+        
+        class MultiRowCommand {
+            constructor(commands, description) {
+                this.commands = commands;
+                this.desc = description;
+                this.timestamp = new Date().toISOString();
+            }
+            
+            execute() {
+                this.commands.forEach(cmd => cmd.execute && cmd.execute());
+            }
+            
+            undo() {
+                // Undo in reverse order
+                for (let i = this.commands.length - 1; i >= 0; i--) {
+                    if (this.commands[i].undo) {
+                        this.commands[i].undo();
+                    }
+                }
+            }
+            
+            getDescription() {
+                return this.desc || `Multiple actions (${this.commands.length})`;
+            }
+        }
+        
+        // Initialize undo stack
+        const undoStack = new UndoStack(30);
+        
+        // ============================================================================
+        // ROW MANAGEMENT FUNCTIONS
+        // ============================================================================
+        
+        function initializeRowListeners(row) {
+            if (!row) return;
+            
+            // Add delete functionality with undo
+            const deleteBtn = row.querySelector('.delete-row-btn');
+            if (deleteBtn && !deleteBtn.hasListener) {
+                deleteBtn.addEventListener('click', () => {
+                    const rowData = {
+                        saturdayNo: row.querySelector('.sat_no')?.value || '',
+                        men: row.querySelector('.men')?.value || '',
+                        women: row.querySelector('.women')?.value || '',
+                        youth: row.querySelector('.youth')?.value || '',
+                        children: row.querySelector('.children')?.value || ''
+                    };
+                    
+                    const rowId = row.getAttribute('data-row-id') || 'row_' + Date.now();
+                    const deleteCommand = new DeleteRowCommand(row, rowData, rowId);
+                    deleteCommand.execute();
+                    undoStack.push(deleteCommand);
+                    
+                    showUndoNotification('Row deleted', () => {
+                        // Optional redo function
+                        if (undoStack.peek() === deleteCommand) {
+                            undo();
+                        }
+                    });
+                });
+                deleteBtn.hasListener = true;
+            }
+            
+            // Add change detection for edit undo
+            const inputs = row.querySelectorAll('input:not([type="file"]), select');
+            inputs.forEach(input => {
+                if (input.hasListener) return;
+                
+                let oldValue = input.value;
+                let fieldName = input.className.split(' ')[0]; // Get first class
+                
+                input.addEventListener('focus', () => {
+                    oldValue = input.value;
+                });
+                
+                input.addEventListener('change', () => {
+                    if (oldValue !== input.value) {
+                        const rowId = row.getAttribute('data-row-id');
+                        if (rowId) {
+                            const editCommand = new EditRowCommand(
+                                rowId,
+                                fieldName,
+                                oldValue,
+                                input.value
+                            );
+                            undoStack.push(editCommand);
+                            oldValue = input.value; // Update for next change
+                        }
+                    }
+                });
+                
+                input.hasListener = true;
+            });
+        }
+        
+        // Enhanced generateFields with undo support
+        function generateFields() {
+            const count = parseInt(document.getElementById('sat_count').value) || 1;
+            const newRows = [];
+            const commands = [];
+            
+            for (let i = 0; i < count; i++) {
+                const rowData = { 
+                    saturdayNo: '', 
+                    men: '', 
+                    women: '', 
+                    youth: '', 
+                    children: '',
+                    tithe: '',
+                    offering: '',
+                    fr_amount: 0,
+                    fr_type: 'none'
+                };
+                
+                const rowId = 'row_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 5);
+                const rowElement = addRecordRow(null, false, rowId);
+                
+                if (rowElement) {
+                    newRows.push({ element: rowElement, data: rowData, id: rowId });
+                    
+                    // Create individual add commands for potential partial undo
+                    const addCommand = new AddRowCommand(rowData, rowElement, i);
+                    commands.push(addCommand);
+                }
+            }
+            
+            // Create composite command for multiple rows
+            if (commands.length > 0) {
+                const multiCommand = new MultiRowCommand(
+                    commands,
+                    `Added ${commands.length} new row${commands.length > 1 ? 's' : ''}`
+                );
+                undoStack.push(multiCommand);
+            }
+            
+            document.getElementById('save_btn').style.display = 'block';
+            updateUndoUI();
+        }
+        
+        // Modified addRecordRow to accept rowId parameter
+        function addRecordRow(data = null, isExisting = false, customRowId = null) {
+            const container = document.getElementById('bulk_container');
+            const row = document.createElement('div');
+            row.className = 'saturday-row' + (isExisting ? ' existing-record' : '');
+            
+            const rowId = customRowId || 'row_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            row.setAttribute('data-row-id', rowId);
+            row.setAttribute('data-timestamp', new Date().toISOString());
+            
+            const satNo = data ? data.saturday_no : "";
+            const men = data ? data.men : "";
+            const women = data ? data.women : "";
+            const youth = data ? data.youth : "";
+            const children = data ? data.children : "";
+            const sunday = data ? data.sunday : "";
+            const tithe = data ? data.tithe : "";
+            const offering = data ? data.offering : "";
+            const fr_amount = data ? data.fr_amount : 0;
+            const fr_type = data ? data.fr_type : 'none';
+
+            row.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="margin:0;">${isExisting ? 'Editing Saturday #' + satNo : 'New Entry'}</h4>
+                    <div>
+                        <button type="button" class="delete-row-btn">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+                    <div>
+                        <label>Sat No:</label>
+                        <input type="number" class="sat_no" value="${satNo}" required ${isExisting ? 'readonly' : ''}>
+                    </div>
+                    <div>
+                        <label>Men:</label>
+                        <input type="number" class="men" value="${men}" required>
+                    </div>
+                    <div>
+                        <label>Women:</label>
+                        <input type="number" class="women" value="${women}" required>
+                    </div>
+                    <div>
+                        <label>Youth:</label>
+                        <input type="number" class="youth" value="${youth}" required>
+                    </div>
+                    <div>
+                        <label>Children:</label>
+                        <input type="number" class="children" value="${children}" required>
+                    </div>
+                    <div>
+                        <label>Sunday:</label>
+                        <input type="number" class="sunday" value="${sunday}" required>
+                    </div>
+                    <div>
+                        <label>Tithe:</label>
+                        <input type="number" step="0.01" class="tithe" value="${tithe}" required>
+                    </div>
+                    <div>
+                        <label>Offering:</label>
+                        <input type="number" step="0.01" class="offering" value="${offering}" required>
+                    </div>
+                    <div>
+                        <label>FR Type:</label>
+                        <select class="fr_type">
+                            <option value="none" ${fr_type === 'none' ? 'selected' : ''}>No Fundraising</option>
+                            <option value="planned" ${fr_type === 'planned' ? 'selected' : ''}>Planned</option>
+                            <option value="emergency" ${fr_type === 'emergency' ? 'selected' : ''}>Emergency</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>FR Amount:</label>
+                        <input type="number" step="0.01" class="fr_amount" value="${fr_amount}">
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(row);
+            
+            // Initialize all listeners for this row
+            initializeRowListeners(row);
+            
+            return row;
+        }
+        
+        // Add Undo button to UI
+        function addUndoButton() {
+            const container = document.getElementById('undoContainer');
+            if (container) {
+                container.innerHTML = `
+                    <div style="display: flex; gap: 15px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+                        <button type="button" id="undoBtn" class="btn-undo" disabled>
+                            <i class="fas fa-undo"></i> Undo (<span id="undoCount">0</span>)
+                        </button>
+                        <span id="lastAction" style="color: #666; font-style: italic;"></span>
+                    </div>
+                `;
+                
+                // Add undo event listener
+                document.getElementById('undoBtn').addEventListener('click', undo);
+            }
+        }
+        
+        // Undo function
+        function undo() {
+            if (undoStack.isEmpty()) return;
+            
+            const command = undoStack.pop();
+            if (command && command.undo) {
+                command.undo();
+                showUndoNotification(`Undid: ${command.getDescription ? command.getDescription() : 'last action'}`);
+            }
+            updateUndoUI();
+        }
+        
+        // Show undo notification
+        function showUndoNotification(message, onRedo) {
+            const notification = document.createElement('div');
+            notification.className = 'undo-notification';
+            notification.innerHTML = `
+                <i class="fas fa-info-circle"></i>
+                <span style="flex-grow: 1;">${message}</span>
+                <button onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 3000);
+        }
+        
+        // Update undo UI
+        function updateUndoUI() {
+            undoStack.updateUndoButton();
+        }
+        
+        // ============================================================================
+        // ORIGINAL FUNCTIONS (Modified to work with undo)
+        // ============================================================================
+        
+        // Load targets when page opens
+        window.onload = async function() {
+            const res = await fetch('/api/get_targets');
+            const data = await res.json();
+            document.getElementById('global_target_att').value = data.target_attendance;
+            document.getElementById('global_target_off').value = data.target_offering;
+            
+            // Add undo button
+            addUndoButton();
+            
+            // Add keyboard shortcut (Ctrl+Z)
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'z') {
+                    e.preventDefault();
+                    undo();
+                }
+            });
+        };
+
+        async function saveTargets() {
+            const data = {
+                target_attendance: document.getElementById('global_target_att').value,
+                target_offering: document.getElementById('global_target_off').value
+            };
+            await fetch('/api/save_targets', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            alert("Targets updated!");
+        }
+
+        // --- ENHANCED OCR SCAN FUNCTION ---
+        async function performScan() {
+            const fileInput = document.getElementById('imageInput');
+            if (fileInput.files.length === 0) {
+                alert("Please select an image first");
+                return;
+            }
+
+            const btn = document.getElementById('scanBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Advanced AI Scanning...';
+            btn.disabled = true;
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/scan-records', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const statusDiv = document.getElementById('scanStatus');
+                    let methodText = '';
+                    let confidenceColor = '';
+                    
+                    if (data.method_used && data.method_used.includes('google')) {
+                        methodText = '✅ Google AI Vision (high accuracy)';
+                        confidenceColor = 'green';
+                    } else if (data.method_used && data.method_used.includes('tesseract')) {
+                        methodText = '⚠️ Standard OCR (medium accuracy)';
+                        confidenceColor = 'orange';
+                    } else {
+                        methodText = '✅ Data extracted';
+                        confidenceColor = 'green';
+                    }
+                    
+                    statusDiv.innerHTML = `<span style="color: ${confidenceColor}; font-weight: bold;">${methodText}</span>`;
+                    
+                    const rows = document.querySelectorAll('.saturday-row');
+                    if (rows.length > 0) {
+                        const lastRow = rows[rows.length - 1];
+                        
+                        // Store old values for undo
+                        const oldValues = {};
+                        
+                        // Fill attendance
+                        if (lastRow.querySelector('.men')) {
+                            oldValues.men = lastRow.querySelector('.men').value;
+                            lastRow.querySelector('.men').value = data.men || 0;
+                        }
+                        if (lastRow.querySelector('.women')) {
+                            oldValues.women = lastRow.querySelector('.women').value;
+                            lastRow.querySelector('.women').value = data.women || 0;
+                        }
+                        if (lastRow.querySelector('.youth')) {
+                            oldValues.youth = lastRow.querySelector('.youth').value;
+                            lastRow.querySelector('.youth').value = data.youth || 0;
+                        }
+                        if (lastRow.querySelector('.children')) {
+                            oldValues.children = lastRow.querySelector('.children').value;
+                            lastRow.querySelector('.children').value = data.children || 0;
+                        }
+                        
+                        // Fill Saturday number if detected
+                        if (data.saturday_no > 0 && lastRow.querySelector('.sat_no')) {
+                            oldValues.sat_no = lastRow.querySelector('.sat_no').value;
+                            lastRow.querySelector('.sat_no').value = data.saturday_no;
+                        }
+                        
+                        // Fill financials if detected
+                        if (data.tithe > 0) {
+                            const titheField = lastRow.querySelector('.tithe');
+                            if (titheField) {
+                                oldValues.tithe = titheField.value;
+                                titheField.value = data.tithe;
+                            }
+                        }
+                        if (data.offering > 0) {
+                            const offeringField = lastRow.querySelector('.offering');
+                            if (offeringField) {
+                                oldValues.offering = offeringField.value;
+                                offeringField.value = data.offering;
+                            }
+                        }
+                        if (data.fr_amount > 0) {
+                            const frField = lastRow.querySelector('.fr_amount');
+                            if (frField) {
+                                oldValues.fr_amount = frField.value;
+                                frField.value = data.fr_amount;
+                            }
+                            
+                            const frTypeSelect = lastRow.querySelector('.fr_type');
+                            if (frTypeSelect && data.fr_type && data.fr_type !== 'none') {
+                                oldValues.fr_type = frTypeSelect.value;
+                                frTypeSelect.value = data.fr_type;
+                            }
+                        }
+                        
+                        // Show what was found
+                        const extractedInfo = document.createElement('div');
+                        extractedInfo.className = 'extracted-info';
+                        extractedInfo.innerHTML = `
+                            <strong>📊 Detected:</strong> Men: ${data.men || 0}, Women: ${data.women || 0}, 
+                            Youth: ${data.youth || 0}, Children: ${data.children || 0}<br>
+                            <strong>💰 Finances:</strong> Tithe: $${data.tithe || 0}, Offering: $${data.offering || 0}, 
+                            Fundraising: $${data.fr_amount || 0}
+                        `;
+                        statusDiv.appendChild(extractedInfo);
+                        
+                    } else {
+                        generateFields();
+                        setTimeout(() => {
+                            const newRow = document.querySelector('.saturday-row:last-child');
+                            if (newRow) {
+                                if (newRow.querySelector('.men')) newRow.querySelector('.men').value = data.men || 0;
+                                if (newRow.querySelector('.women')) newRow.querySelector('.women').value = data.women || 0;
+                                if (newRow.querySelector('.youth')) newRow.querySelector('.youth').value = data.youth || 0;
+                                if (newRow.querySelector('.children')) newRow.querySelector('.children').value = data.children || 0;
+                                if (data.saturday_no > 0 && newRow.querySelector('.sat_no')) {
+                                    newRow.querySelector('.sat_no').value = data.saturday_no;
+                                }
+                            }
+                        }, 100);
+                    }
+                } else {
+                    alert('Scan failed: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error during scan: ' + error);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function continueLastStop() {
+            const res = await fetch('/api/get_data');
+            const existingData = await res.json();
+            const container = document.getElementById('bulk_container');
+            container.innerHTML = '';
+            
+            // Clear undo stack when loading new data
+            undoStack.clear();
+            
+            existingData.forEach((data) => { 
+                addRecordRow(data, true); 
+            });
+            document.getElementById('save_btn').style.display = 'block';
+        }
+
+        // Override the original generateFields
+        window.generateFields = generateFields;
+
+        async function saveAllData() {
+            const rows = document.querySelectorAll('.saturday-row');
+            const allData = [];
+            rows.forEach(row => {
+                allData.push({
+                    saturday_no: row.querySelector('.sat_no').value,
+                    men: row.querySelector('.men').value,
+                    women: row.querySelector('.women').value,
+                    youth: row.querySelector('.youth').value,
+                    children: row.querySelector('.children').value,
+                    tithe: row.querySelector('.tithe').value,
+                    sunday: row.querySelector('.sunday').value,
+                    offering: row.querySelector('.offering').value,
+                    fr_type: row.querySelector('.fr_type').value,
+                    fr_amount: row.querySelector('.fr_amount').value
+                });
+            });
+
+            const response = await fetch('/api/submit_saturday', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(allData)
+            });
+
+            if (response.ok) {
+                alert("Database updated!");
+                window.location.href = "{{ url_for('analysis') }}";
+            } else {
+                const error = await response.json();
+                alert("Error saving data: " + (error.message || "Please ensure all fields are filled."));
+            }
+        }
+    </script>
+</body>
+</html>

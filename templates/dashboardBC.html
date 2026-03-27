@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Church Growth Portal - Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #11d694; margin: 0; padding: 0; }
+        nav { 
+            background: #2c3e50; padding: 15px 30px; color: white; 
+            display: flex; justify-content: space-between; align-items: center; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .welcome-section { text-align: center; color: white; margin-top: 30px; }
+        .portal-grid { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+            gap: 25px; padding: 40px; max-width: 1100px; margin: 0 auto; 
+        }
+        .portal-card {
+            background: white; padding: 35px 25px; border-radius: 15px; text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2); transition: transform 0.3s ease;
+            cursor: pointer; text-decoration: none; color: #2c3e50;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .portal-card:hover { transform: translateY(-10px); background: #f8f9fa; }
+        .portal-card i { font-size: 3.5em; color: #e845c7; margin-bottom: 20px; }
+        .portal-card h3 { margin: 10px 0; font-size: 1.5em; color: #2c3e50; }
+        .portal-card p { color: #666; font-size: 0.95em; line-height: 1.4; }
+        .btn-logout { background: #e67e22; color: white; padding: 10px 25px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <nav>
+        <span style="font-weight: bold; font-size: 1.3em;">Church Growth Portal</span>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <span><i class="fas fa-user-circle"></i> {{ session['username'] }}</span>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+        </div>
+    </nav>
+
+    <div class="welcome-section">
+        <h1>Welcome, Admin</h1>
+        <p>Select a module to manage church operations effectively</p>
+    </div>
+
+    <div class="portal-grid">
+        <a href="{{ url_for('data_entry') }}" class="portal-card">
+            <i class="fas fa-edit"></i>
+            <h3>Data Entry</h3>
+            <p>Record weekly attendance, tithes, offerings, and finance breakdown.</p>
+        </a>
+
+        <a href="{{ url_for('manage_projects') }}" class="portal-card">
+            <i class="fas fa-church"></i>
+            <h3>Church Projects</h3>
+            <p>Upload details and track progress of ongoing projects.</p>
+        </a>
+
+        <a href="{{ url_for('manage_expenses') }}" class="portal-card">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <h3>Expense Account</h3>
+            <p>Manage payouts, utility bills, and maintenance costs.</p>
+        </a>
+
+        <a href="{{ url_for('analysis') }}" class="portal-card">
+            <i class="fas fa-chart-line"></i>
+            <h3>Trend Analysis</h3>
+            <p>Compare previous years' growth and visualize trends.</p>
+        </a>
+    </div>
+</body>
+</html>

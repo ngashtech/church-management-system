@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Mode - Church Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 70%;
+        }
+
+        /* Header Section */
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            display: inline-block;
+            padding: 10px 25px;
+            border-radius: 50px;
+            margin-top: 20px;
+            border: 1px solid rgba(255,255,255,0.3);
+            animation: fadeIn 1s ease;
+        }
+
+        .user-info i {
+            margin-right: 10px;
+            color: #ffd700;
+        }
+
+        /* Mode Cards Grid */
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .mode-card {
+            background: white;
+            border-radius: 10px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 1s ease;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-15px);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+        }
+
+        .mode-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        /* Test Mode Card */
+        .test-card::before {
+            background: linear-gradient(90deg, #f39c12, #f1c40f);
+        }
+
+        .test-card .mode-icon {
+            background: linear-gradient(135deg, #f39c12, #f1c40f);
+        }
+
+        /* Production Mode Card */
+        .production-card::before {
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+        }
+
+        .production-card .mode-icon {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+
+        .mode-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 20%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 25px;
+            color: white;
+            font-size: 3em;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .mode-card:hover .mode-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .mode-card h2 {
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        .test-card h2 {
+            color: #f39c12;
+        }
+
+        .production-card h2 {
+            color: #2ecc71;
+        }
+
+        .mode-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            font-size: 1.1em;
+        }
+
+        /* Feature List */
+        .feature-list {
+            text-align: left;
+            margin: 25px 0;
+            padding: 0 20px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            color: #555;
+        }
+
+        .feature-item i {
+            width: 25px;
+            margin-right: 10px;
+        }
+
+        .test-card .feature-item i {
+            color: #f39c12;
+        }
+
+        .production-card .feature-item i {
+            color: #2ecc71;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .test-card .badge {
+            background: linear-gradient(135deg, #f39c12, #f1c40f);
+            color: white;
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);
+        }
+
+        .production-card .badge {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+        }
+
+        .mode-card:hover .badge {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        /* Warning Banner */
+        .warning-banner {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-top: 40px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            animation: fadeInUp 1.2s ease;
+            flex-wrap: wrap;
+        }
+
+        .warning-icon {
+            background: #f1c40f;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5em;
+            flex-shrink: 0;
+        }
+
+        .warning-text {
+            flex: 1;
+            color: #333;
+        }
+
+        .warning-text strong {
+            color: #e67e22;
+            font-size: 1.1em;
+        }
+
+        .warning-text p {
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .reset-link {
+            background: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .reset-link:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        /* Quick Stats */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+        }
+
+        .stat-item {
+            text-align: center;
+            color: white;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9em;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .mode-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .warning-banner {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .feature-list {
+                padding: 0 10px;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <h1><i class="fas fa-church"></i> Church Management System</h1>
+            <p>Choose your working mode to continue</p>
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <span>Logged in as: <strong>{{ session.get('username', 'Admin') }}</strong> ({{ session.get('role', 'user') }})</span>
+            </div>
+        </div>
+
+        <!-- Mode Selection Grid -->
+        <div class="mode-grid">
+            <!-- Test Mode Card -->
+            <a href="{{ url_for('enter_test_mode') }}" class="mode-card test-card">
+                <div class="mode-icon">
+                    <i class="fas fa-flask"></i>
+                </div>
+                <h2><i class="fas fa-flask"></i> TEST MODE</h2>
+                <p class="mode-description">
+                    Practice and training environment with sample data
+                </p>
+                
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Pre-loaded sample attendance data</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Practice projects and expenses</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Test all features safely</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Reset data anytime</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-exclamation-triangle" style="color: #f39c12;"></i>
+                        <span><strong>Data is temporary</strong> - resets on demand</span>
+                    </div>
+                </div>
+
+                <div class="badge">
+                    <i class="fas fa-rocket"></i> ENTER TEST MODE
+                </div>
+            </a>
+
+            <!-- Production Mode Card -->
+            <a href="{{ url_for('enter_production_mode') }}" class="mode-card production-card">
+                <div class="mode-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <h2><i class="fas fa-database"></i> PRODUCTION MODE</h2>
+                <p class="mode-description">
+                    Real church data management system
+                </p>
+
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Live attendance tracking</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Real financial records</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Actual project management</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Expense tracking</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-shield-alt" style="color: #2ecc71;"></i>
+                        <span><strong>Data is permanent</strong> - use with care</span>
+                    </div>
+                </div>
+
+                <div class="badge">
+                    <i class="fas fa-play"></i> ENTER PRODUCTION MODE
+                </div>
+            </a>
+        </div>
+
+        <!-- Quick Stats Section (only show in test mode) -->
+        {% if session.get('test_mode') %}
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-value" id="attendance-count">0</div>
+                <div class="stat-label">Sample Records</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="project-count">0</div>
+                <div class="stat-label">Test Projects</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="expense-count">0</div>
+                <div class="stat-label">Sample Expenses</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Warning Banner -->
+        <div class="warning-banner">
+            <div class="warning-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="warning-text">
+                <strong>⚠️ Important Notice:</strong>
+                <p>
+                    Test mode uses a separate database (church_test.db) with sample data. 
+                    Production mode uses your real database (church.db). You can switch between modes anytime.
+                </p>
+            </div>
+            {% if session.get('test_mode') %}
+            <a href="{{ url_for('reset_test_data') }}" class="reset-link" onclick="return confirm('Are you sure you want to reset all test data? This cannot be undone.');">
+                <i class="fas fa-sync-alt"></i> Reset Test Data
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>
+                <i class="fas fa-code-branch"></i> Current Mode: 
+                <strong style="color: {{ '#f39c12' if session.get('test_mode') else '#2ecc71' }}">
+                    {{ 'TEST MODE 🧪' if session.get('test_mode') else 'PRODUCTION MODE 📁' }}
+                </strong>
+            </p>
+            <p>
+                <a href="{{ url_for('dashboard') }}"><i class="fas fa-tachometer-alt"></i> Go to Dashboard</a> |
+                <a href="{{ url_for('logout') }}" onclick="return confirm('Are you sure you want to logout?');"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </p>
+            <p style="margin-top: 10px; font-size: 0.85em;">
+                <i class="fas fa-database"></i> Production DB: church.db | 
+                <i class="fas fa-flask"></i> Test DB: church_test.db
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Add smooth hover effects
+        document.querySelectorAll('.mode-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-15px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Press '1' for test mode
+            if (e.key === '1' && !e.ctrlKey && !e.altKey) {
+                window.location.href = "{{ url_for('enter_test_mode') }}";
+            }
+            // Press '2' for production mode
+            if (e.key === '2' && !e.ctrlKey && !e.altKey) {
+                window.location.href = "{{ url_for('enter_production_mode') }}";
+            }
+            // Press 'D' for dashboard
+            if (e.key.toLowerCase() === 'd' && !e.ctrlKey && !e.altKey) {
+                window.location.href = "{{ url_for('dashboard') }}";
+            }
+        });
+
+        // Show tooltip for keyboard shortcuts
+        const style = document.createElement('style');
+        style.textContent = `
+            .mode-card {
+                position: relative;
+            }
+            .mode-card::after {
+                content: 'Press 1 or 2';
+                position: absolute;
+                bottom: 10px;
+                right: 10px;
+                background: rgba(0,0,0,0.1);
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 0.8em;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .mode-card:hover::after {
+                opacity: 1;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+
+    {% if session.get('test_mode') %}
+    <script>
+        // Load stats when page loads (only for test mode)
+        async function loadTestStats() {
+            try {
+                const response = await fetch('/api/get_data');
+                const data = await response.json();
+                
+                // Update stats with animation
+                const attendanceEl = document.getElementById('attendance-count');
+                const projectEl = document.getElementById('project-count');
+                const expenseEl = document.getElementById('expense-count');
+                
+                if (attendanceEl) {
+                    attendanceEl.textContent = data.length || 0;
+                }
+                if (projectEl) {
+                    projectEl.textContent = '4';
+                }
+                if (expenseEl) {
+                    expenseEl.textContent = '20';
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        // Load stats when page loads
+        window.addEventListener('load', loadTestStats);
+    </script>
+    {% endif %}
+</body>
+</html>

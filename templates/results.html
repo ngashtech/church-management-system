@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Church Growth Analysis - Target Achievement</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.0.1"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #11d694; margin: 0; padding: 0; }
+        nav { background: #2c3e50; padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center; }
+        nav div a { color: white; text-decoration: none; font-weight: bold; margin-right: 20px; }
+        .container { padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .chart-container, .table-container, .target-dashboard { 
+            width: 95%; max-width: 1200px; margin: 25px auto; background: white; 
+            padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        }
+        .analysis { 
+            padding: 20px; background: #e845c7; border-left: 6px solid #ffc107; 
+            margin: 20px auto; width: 95%; max-width: 1200px; border-radius: 4px; 
+            font-size: 1.1em; color: white; 
+        }
+        
+        /* Target Dashboard Styles */
+        .target-dashboard h2 { color: #2c3e50; margin-top: 0; }
+        .target-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .target-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            padding: 20px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .target-card.attendance { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .target-card.finance { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        
+        .target-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 10px;
+        }
+        .target-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+        .target-edit-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .target-edit-btn:hover { background: rgba(255,255,255,0.3); }
+        
+        .target-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .stat-box {
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+        .stat-value {
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #fff;
+            transition: width 0.5s ease;
+            border-radius: 5px;
+        }
+        .percentage {
+            font-size: 1.3em;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .status-excellent { background: #10b981; color: white; }
+        .status-good { background: #3b82f6; color: white; }
+        .status-warning { background: #f59e0b; color: white; }
+        .status-critical { background: #ef4444; color: white; }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            width: 400px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .modal-content h3 { margin-top: 0; color: #2c3e50; }
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        .modal-content input:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-save { background: #10b981; color: white; }
+        .btn-cancel { background: #ef4444; color: white; }
+        
+        table { width:100%; border-collapse: collapse; margin-top: 15px; color: #333; font-size: 0.9em; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; }
+        .highlight { background: #e79bdf !important; font-weight: bold; }
+        
+        .year-selector { 
+            background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; 
+            width: 95%; max-width: 1200px; display: flex; gap: 15px; align-items: center; 
+        }
+        .year-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 80px; }
+        .btn-compare { background: #2c3e50; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+
+        @media print {
+            nav, .print-btn, .year-selector, .target-edit-btn { display: none !important; }
+            .chart-container, .table-container, .analysis, .target-dashboard { box-shadow: none; border: 1px solid #ccc; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div>
+            <a href="{{ url_for('dashboard') }}"><i class="fas fa-arrow-left"></i> Dashboard</a>
+            <a href="{{ url_for('manage_expenses') }}">Expenses</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+        <button onclick="window.print()" style="background:#e67e22; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">
+            <i class="fas fa-file-pdf"></i> Print Report
+        </button>
+    </nav>
+
+    <div class="container">
+        <div class="analysis">
+            <strong>Strategic Analysis:</strong> {{ analysis }}
+        </div>
+
+        <div class="year-selector">
+            <form action="{{ url_for('analysis') }}" method="GET" style="display: flex; gap: 15px; align-items: center;">
+                <label>Compare Year:</label>
+                <input type="number" name="year1" value="{{ year1 }}" class="year-input">
+                <label>with Year:</label>
+                <input type="number" name="year2" value="{{ year2 }}" class="year-input">
+                <button type="submit" class="btn-compare">Update Comparison</button>
+            </form>
+        </div>
+
+        <!-- TARGET ACHIEVEMENT DASHBOARD -->
+        <div class="target-dashboard">
+            <h2><i class="fas fa-bullseye"></i> Target Achievement Dashboard</h2>
+            <div class="target-grid">
+                <!-- Attendance Targets Card -->
+                <div class="target-card attendance">
+                    <div class="target-header">
+                        <h3><i class="fas fa-users"></i> Attendance Targets</h3>
+                        <button class="target-edit-btn" onclick="openAttendanceModal()">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </div>
+                    <div class="target-stats">
+                        <div class="stat-box">
+                            <div class="stat-label">Men</div>
+                            <div class="stat-value" id="men-target">1300</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Women</div>
+                            <div class="stat-value" id="women-target">1600</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Youth</div>
+                            <div class="stat-value" id="youth-target">780</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Children</div>
+                            <div class="stat-value" id="children-target">900</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Overall Attendance Achievement -->
+                    <div style="margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Overall Achievement</span>
+                            <span id="overall-att-percent">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="overall-att-progress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="attendance-status" class="status-badge status-warning">Loading...</div>
+                </div>
+
+                <!-- Financial Targets Card -->
+                <div class="target-card finance">
+                    <div class="target-header">
+                        <h3><i class="fas fa-coins"></i> Financial Targets</h3>
+                        <button class="target-edit-btn" onclick="openFinanceModal()">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </div>
+                    <div class="target-stats">
+                        <div class="stat-box">
+                            <div class="stat-label">Tithe</div>
+                            <div class="stat-value" id="tithe-target">800,000</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Offering</div>
+                            <div class="stat-value" id="offering-target">200,000</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Overall Financial Achievement -->
+                    <div style="margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Overall Achievement</span>
+                            <span id="overall-fin-percent">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="overall-fin-progress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="financial-status" class="status-badge status-warning">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPOUNDED STACKED ATTENDANCE LINE GRAPH -->
+        <div class="chart-container">
+            <h3>📈 Attendance Trends - Cumulative Stack</h3>
+            <canvas id="attendanceLineChart" data-labels='{{ labels | tojson }}'></canvas>
+        </div>
+
+        <!-- FINANCIAL LINE GRAPH -->
+        <div class="chart-container">
+            <h3>💰 Financial Trends Over Time</h3>
+            <canvas id="financialLineChart"></canvas>
+        </div>
+
+        <!-- DATA TABLE -->
+        <div class="table-container">
+            <h3 style="margin-top:0;">Compiled Records ({{ year2 if year2 else year1 }})</h3>
+            <table id="recordsTable">
+                <thead>
+                    <tr>
+                        <th>Date/Sat No</th>
+                        <th>Men</th><th>Women</th><th>Youth</th><th>Children</th>
+                        <th class="highlight">Total Att.</th>
+                        <th>Sunday</th>
+                        <th>Tithe</th><th>Offering</th><th>Fundraising</th>
+                        <th class="highlight">Total Cash</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in table_data %}
+                    <tr>
+                        <td>Sat {{ row.saturday_no }}</td>
+                        <td class="men-val">{{ row.men or 0 }}</td>
+                        <td class="women-val">{{ row.women or 0 }}</td>
+                        <td class="youth-val">{{ row.youth or 0 }}</td>
+                        <td class="children-val">{{ row.children or 0 }}</td>
+                        <td class="total-att-val highlight">{{ row.total_attendance or 0 }}</td>
+                        <td>{{ row.sunday or 0 }}</td>
+                        <td class="tithe-val">{{ row.tithe or 0 }}</td>
+                        <td class="offering-val">{{ row.offering or 0 }}</td>
+                        <td class="fund-val">{{ row.fr_amount or 0 }}</td>
+                        <td class="total-cash-val highlight">{{ row.total_cash or 0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Edit Attendance Targets Modal -->
+    <div id="attendanceModal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-users"></i> Edit Attendance Targets</h3>
+            <input type="number" id="edit-men" placeholder="Men Target" value="1300">
+            <input type="number" id="edit-women" placeholder="Women Target" value="1600">
+            <input type="number" id="edit-youth" placeholder="Youth Target" value="780">
+            <input type="number" id="edit-children" placeholder="Children Target" value="900">
+            <div class="modal-actions">
+                <button class="btn-save" onclick="saveAttendanceTargets()">Save</button>
+                <button class="btn-cancel" onclick="closeModals()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Financial Targets Modal -->
+    <div id="financeModal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-coins"></i> Edit Financial Targets</h3>
+            <input type="number" id="edit-tithe" placeholder="Tithe Target" value="800000">
+            <input type="number" id="edit-offering" placeholder="Offering Target" value="200000">
+            <div class="modal-actions">
+                <button class="btn-save" onclick="saveFinanceTargets()">Save</button>
+                <button class="btn-cancel" onclick="closeModals()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Target values (defaults)
+        let targets = {
+            men: 1300,
+            women: 1600,
+            youth: 780,
+            children: 900,
+            tithe: 800000,
+            offering: 200000
+        };
+
+        // Load saved targets from localStorage if available
+        function loadTargets() {
+            const saved = localStorage.getItem('churchTargets');
+            if (saved) {
+                targets = JSON.parse(saved);
+                updateTargetDisplay();
+            }
+        }
+
+        // Update the display with current targets
+        function updateTargetDisplay() {
+            document.getElementById('men-target').textContent = targets.men.toLocaleString();
+            document.getElementById('women-target').textContent = targets.women.toLocaleString();
+            document.getElementById('youth-target').textContent = targets.youth.toLocaleString();
+            document.getElementById('children-target').textContent = targets.children.toLocaleString();
+            document.getElementById('tithe-target').textContent = targets.tithe.toLocaleString();
+            document.getElementById('offering-target').textContent = targets.offering.toLocaleString();
+        }
+
+        // Calculate and update achievements
+        function updateAchievements() {
+            // Get actual values from table
+            const menActual = getAverage('.men-val');
+            const womenActual = getAverage('.women-val');
+            const youthActual = getAverage('.youth-val');
+            const childrenActual = getAverage('.children-val');
+            const titheActual = getAverage('.tithe-val');
+            const offeringActual = getAverage('.offering-val');
+
+            // Calculate percentages
+            const menPct = (menActual / targets.men * 100).toFixed(1);
+            const womenPct = (womenActual / targets.women * 100).toFixed(1);
+            const youthPct = (youthActual / targets.youth * 100).toFixed(1);
+            const childrenPct = (childrenActual / targets.children * 100).toFixed(1);
+            
+            // Overall attendance percentage (average of all categories)
+            const overallAttPct = ((menActual + womenActual + youthActual + childrenActual) / 
+                                   (targets.men + targets.women + targets.youth + targets.children) * 100).toFixed(1);
+            
+            // Financial percentages
+            const tithePct = (titheActual / targets.tithe * 100).toFixed(1);
+            const offeringPct = (offeringActual / targets.offering * 100).toFixed(1);
+            const overallFinPct = ((titheActual + offeringActual) / (targets.tithe + targets.offering) * 100).toFixed(1);
+
+            // Update progress bars
+            document.getElementById('overall-att-progress').style.width = overallAttPct + '%';
+            document.getElementById('overall-att-percent').textContent = overallAttPct + '%';
+            document.getElementById('overall-fin-progress').style.width = overallFinPct + '%';
+            document.getElementById('overall-fin-percent').textContent = overallFinPct + '%';
+
+            // Update status badges
+            updateStatusBadge('attendance', overallAttPct);
+            updateStatusBadge('financial', overallFinPct);
+        }
+
+        function getAverage(selector) {
+            const values = Array.from(document.querySelectorAll(selector)).map(td => parseFloat(td.innerText) || 0);
+            if (values.length === 0) return 0;
+            return values.reduce((a, b) => a + b, 0) / values.length;
+        }
+
+        function updateStatusBadge(type, percentage) {
+            const badge = document.getElementById(type + '-status');
+            const pct = parseFloat(percentage);
+            
+            badge.className = 'status-badge';
+            if (pct >= 100) {
+                badge.className += ' status-excellent';
+                badge.textContent = '🎉 Target Exceeded!';
+            } else if (pct >= 80) {
+                badge.className += ' status-good';
+                badge.textContent = '✅ On Track';
+            } else if (pct >= 50) {
+                badge.className += ' status-warning';
+                badge.textContent = '⚠️ Needs Improvement';
+            } else {
+                badge.className += ' status-critical';
+                badge.textContent = '❌ Critical';
+            }
+        }
+
+        // Modal functions
+        function openAttendanceModal() {
+            document.getElementById('edit-men').value = targets.men;
+            document.getElementById('edit-women').value = targets.women;
+            document.getElementById('edit-youth').value = targets.youth;
+            document.getElementById('edit-children').value = targets.children;
+            document.getElementById('attendanceModal').style.display = 'block';
+        }
+
+        function openFinanceModal() {
+            document.getElementById('edit-tithe').value = targets.tithe;
+            document.getElementById('edit-offering').value = targets.offering;
+            document.getElementById('financeModal').style.display = 'block';
+        }
+
+        function closeModals() {
+            document.getElementById('attendanceModal').style.display = 'none';
+            document.getElementById('financeModal').style.display = 'none';
+        }
+
+        function saveAttendanceTargets() {
+            targets.men = parseInt(document.getElementById('edit-men').value) || 1300;
+            targets.women = parseInt(document.getElementById('edit-women').value) || 1600;
+            targets.youth = parseInt(document.getElementById('edit-youth').value) || 780;
+            targets.children = parseInt(document.getElementById('edit-children').value) || 900;
+            
+            localStorage.setItem('churchTargets', JSON.stringify(targets));
+            updateTargetDisplay();
+            updateAchievements();
+            closeModals();
+        }
+
+        function saveFinanceTargets() {
+            targets.tithe = parseInt(document.getElementById('edit-tithe').value) || 800000;
+            targets.offering = parseInt(document.getElementById('edit-offering').value) || 200000;
+            
+            localStorage.setItem('churchTargets', JSON.stringify(targets));
+            updateTargetDisplay();
+            updateAchievements();
+            closeModals();
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                closeModals();
+            }
+        }
+
+        // Original chart initialization (keeping your existing charts)
+        async function initDashboard() {
+            // Fetch targets from API
+            let targetAtt = 0, targetOff = 0;
+            try {
+                const res = await fetch('/api/get_targets');
+                const targets = await res.json();
+                targetAtt = targets.target_attendance || 0;
+                targetOff = targets.target_offering || 0;
+            } catch (e) { console.error("Target fetch failed", e); }
+
+            // Get labels
+            const labels = JSON.parse(document.getElementById('attendanceLineChart').getAttribute('data-labels') || '[]');
+            
+            // Helper to extract values from table cells
+            const getVals = (selector) => 
+                Array.from(document.querySelectorAll(selector)).map(td => parseFloat(td.innerText) || 0);
+
+            // Attendance data
+            const menData = getVals('.men-val');
+            const womenData = getVals('.women-val');
+            const youthData = getVals('.youth-val');
+            const childrenData = getVals('.children-val');
+            const totalAttData = getVals('.total-att-val');
+
+            // Calculate cumulative data for stacked display
+            const menWomenData = menData.map((val, index) => val + (womenData[index] || 0));
+            const menWomenYouthData = menWomenData.map((val, index) => val + (youthData[index] || 0));
+
+            // Financial data
+            const titheData = getVals('.tithe-val');
+            const offeringData = getVals('.offering-val');
+            const fundData = getVals('.fund-val');
+            const totalCashData = getVals('.total-cash-val');
+
+            // Load targets and update achievements
+            loadTargets();
+            updateAchievements();
+
+            // Attendance Line Chart
+            new Chart(document.getElementById('attendanceLineChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { 
+                            label: 'Men Only', 
+                            data: menData, 
+                            borderColor: '#3498db', 
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 4
+                        },
+                        { 
+                            label: 'Men + Women', 
+                            data: menWomenData, 
+                            borderColor: '#e91e63', 
+                            backgroundColor: 'rgba(233, 30, 99, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 4
+                        },
+                        { 
+                            label: 'Men + Women + Youth', 
+                            data: menWomenYouthData, 
+                            borderColor: '#9b59b6', 
+                            backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 4
+                        },
+                        { 
+                            label: 'TOTAL (All Groups)', 
+                            data: totalAttData, 
+                            borderColor: '#000000', 
+                            borderWidth: 4,
+                            backgroundColor: 'rgba(0,0,0,0.1)',
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 6,
+                            pointHoverRadius: 10
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: { display: true, text: '📊 Cumulative Attendance Growth' },
+                        legend: { position: 'bottom' },
+                        annotation: {
+                            annotations: {
+                                targetLine: { 
+                                    type: 'line', 
+                                    yMin: targetAtt, 
+                                    yMax: targetAtt, 
+                                    borderColor: '#e74c3c', 
+                                    borderWidth: 2, 
+                                    borderDash: [10, 5],
+                                    label: { 
+                                        display: true, 
+                                        content: '🎯 Target: ' + targetAtt
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Financial Line Chart
+            new Chart(document.getElementById('financialLineChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { 
+                            label: 'TOTAL CASH', 
+                            data: totalCashData, 
+                            borderColor: '#000000', 
+                            borderWidth: 4,
+                            tension: 0.3,
+                            fill: false,
+                            pointRadius: 5
+                        },
+                        { 
+                            label: 'Tithe', 
+                            data: titheData, 
+                            borderColor: '#2ecc71', 
+                            borderWidth: 2,
+                            borderDash: [5, 3],
+                            tension: 0.3,
+                            fill: false
+                        },
+                        { 
+                            label: 'Offering', 
+                            data: offeringData, 
+                            borderColor: '#3498db', 
+                            borderWidth: 2,
+                            borderDash: [5, 3],
+                            tension: 0.3,
+                            fill: false
+                        },
+                        { 
+                            label: 'Fundraising', 
+                            data: fundData, 
+                            borderColor: '#f39c12', 
+                            borderWidth: 2,
+                            borderDash: [5, 3],
+                            tension: 0.3,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: { display: true, text: '💰 Financial Trends' },
+                        legend: { position: 'bottom' },
+                        annotation: {
+                            annotations: {
+                                targetLine: { 
+                                    type: 'line', 
+                                    yMin: targetOff, 
+                                    yMax: targetOff, 
+                                    borderColor: '#e74c3c', 
+                                    borderWidth: 2, 
+                                    borderDash: [10, 5],
+                                    label: { 
+                                        display: true, 
+                                        content: '🎯 Goal: $' + targetOff
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.onload = initDashboard;
+    </script>
+</body>
+</html>

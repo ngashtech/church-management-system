@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Church Growth Analysis - Compounded Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.0.1"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #11d694; margin: 0; padding: 0; }
+        nav { background: #2c3e50; padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        nav div a { color: white; text-decoration: none; font-weight: bold; margin-right: 20px; transition: opacity 0.3s; }
+        nav div a:hover { opacity: 0.7; }
+        .container { padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .chart-container, .table-container { width: 95%; max-width: 1000px; margin: 25px auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .analysis { padding: 20px; background: #e845c7; border-left: 6px solid #ffc107; margin: 20px auto; width: 95%; max-width: 1000px; border-radius: 4px; font-size: 1.1em; color: white; }
+        table { width:100%; border-collapse: collapse; margin-top: 15px; color: #333; font-size: 0.9em; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; }
+        .highlight { background: #e79bdf !important; font-weight: bold; color: #2c3e50; }
+
+        @media print {
+            nav, .print-btn { display: none !important; }
+            .chart-container, .table-container, .analysis { box-shadow: none; border: 1px solid #ccc; width: 95%; margin: 10px auto; color: black; }
+            body { background: white; }
+            .analysis { background: #f9f9f9; color: black; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div>
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('manage_expenses') }}">Expenses</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+        <button class="print-btn" onclick="window.print()" style="background:#e67e22; color:white; border:none; padding:12px 20px; cursor:pointer; border-radius:6px; font-weight:bold;">
+            Print to PDF Report
+        </button>
+    </nav>
+
+    <div class="container">
+        <div class="analysis">
+            <strong>Strategic Analysis:</strong> {{ analysis }}
+        </div>
+
+        <div class="chart-container">
+            <canvas id="compoundedAttChart" data-labels='{{ labels | tojson }}'></canvas>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="financialComparisonChart"></canvas>
+        </div>
+
+        <div class="table-container">
+            <h3 style="margin-top:0;">Compiled Records ({{ year2 if year2 else year1 }})</h3>
+            <table id="recordsTable">
+                <thead>
+                    <tr>
+                        <th>Sat No</th>
+                        <th>Men</th><th>Women</th><th>Youth</th><th>Children</th>
+                        <th class="highlight">Total Att.</th>
+                        <th>Tithe</th><th>Offering</th><th>Fundraising</th>
+                        <th class="highlight">Total Cash</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in table_data %}
+                    <tr>
+                        <td>{{ row.saturday_no }}</td>
+                        <td class="men-val">{{ row.men or 0 }}</td>
+                        <td class="women-val">{{ row.women or 0 }}</td>
+                        <td class="youth-val">{{ row.youth or 0 }}</td>
+                        <td class="children-val">{{ row.children or 0 }}</td>
+                        <td class="total-att-val highlight">{{ row.total_attendance or 0 }}</td> 
+                        <td class="tithe-val">{{ row.tithe or 0 }}</td>
+                        <td class="offering-val">{{ row.offering or 0 }}</td>
+                        <td class="fund-val">{{ row.fr_amount or 0 }}</td>
+                        <td class="total-cash-val highlight">{{ row.total_cash or 0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function initDashboard() {
+            // 1. Fetch Targets
+            let targetAtt = 0, targetOff = 0;
+            try {
+                const res = await fetch('/api/get_targets');
+                const targets = await res.json();
+                targetAtt = targets.target_attendance || 0;
+                targetOff = targets.target_offering || 0;
+            } catch (e) { console.error("Target fetch failed", e); }
+
+            // 2. Data Extraction
+            const labels = JSON.parse(document.getElementById('compoundedAttChart').getAttribute('data-labels') || '[]');
+            const getVals = (cls) => Array.from(document.querySelectorAll(cls)).map(td => parseFloat(td.innerText) || 0);
+            
+            // Attendance datasets
+            const mData = getVals('.men-val');
+            const wData = getVals('.women-val');
+            const yData = getVals('.youth-val');
+            const cData = getVals('.children-val');
+            const totalAttData = getVals('.total-att-val'); // This is the compounded total
+            
+            // Financial datasets
+            const tData = getVals('.tithe-val');
+            const oData = getVals('.offering-val');
+            const fData = getVals('.fund-val');
+            const totalCashData = getVals('.total-cash-val'); // This is the compounded total
+
+            // --- CHART 1: ATTENDANCE ---
+            new Chart(document.getElementById('compoundedAttChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Total Attendance', data: totalAttData, borderColor: '#2c3e50', borderWidth: 4, tension: 0.3, fill: false },
+                        { label: 'Men', data: mData, borderColor: '#3498db', borderDash: [5, 2], tension: 0.3, fill: false },
+                        { label: 'Women', data: wData, borderColor: '#e91e63', borderDash: [5, 2], tension: 0.3, fill: false },
+                        { label: 'Youth', data: yData, borderColor: '#9b59b6', borderDash: [5, 2], tension: 0.3, fill: false },
+                        { label: 'Children', data: cData, borderColor: '#f1c40f', borderDash: [5, 2], tension: 0.3, fill: false }
+                    ]
+                },
+                options: {
+                    plugins: {
+                        title: { display: true, text: 'Compounded Attendance vs Target', font: { size: 16 } },
+                        annotation: {
+                            annotations: {
+                                targetLine: { type: 'line', yMin: targetAtt, yMax: targetAtt, borderColor: 'red', borderWidth: 2, borderDash: [10, 5], label: { display: true, content: 'Target: ' + targetAtt } }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // --- CHART 2: FINANCES ---
+            new Chart(document.getElementById('financialComparisonChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Total Cash', data: totalCashData, borderColor: '#000000', borderWidth: 4, tension: 0.3, fill: false },
+                        { label: 'Tithe', data: tData, borderColor: '#2ecc71', tension: 0.3, fill: false },
+                        { label: 'Offering', data: oData, borderColor: '#3498db', tension: 0.3, fill: false },
+                        { label: 'Fundraising', data: fData, borderColor: '#f39c12', tension: 0.3, fill: false }
+                    ]
+                },
+                options: {
+                    plugins: {
+                        title: { display: true, text: 'Compounded Finances vs Target', font: { size: 16 } },
+                        annotation: {
+                            annotations: {
+                                targetLine: { type: 'line', yMin: targetOff, yMax: targetOff, borderColor: '#e74c3c', borderWidth: 2, borderDash: [10, 5], label: { display: true, content: 'Goal: ' + targetOff } }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        window.onload = initDashboard;
+    </script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Saturday Data Entry & Edit</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #d65fa7; margin: 0; }
+        
+        /* New Navigation Bar for Data Entry */
+        .top-nav { background: #2c3e50; padding: 15px; display: flex; justify-content: space-between; align-items: center; color: white; margin: -20px -20px 20px -20px; }
+        .top-nav a { color: white; text-decoration: none; margin-left: 20px; font-weight: bold; }
+        .btn-back-main { background: #11d694; padding: 8px 15px; border-radius: 5px; color: white !important; }
+
+        .saturday-row { 
+            background: white; padding: 15px; margin-bottom: 15px; 
+            border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            border-left: 5px solid #2c3e50; 
+        }
+        .existing-record { border-left: 5px solid #9b59b6; background: #fdf7ff; } 
+        input, select { margin: 5px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 120px; }
+        .btn-generate { background: #2c3e50; color: white; padding: 10px 15px; border: none; cursor: pointer; border-radius: 5px; }
+        .btn-continue { background: #9b59b6; color: white; padding: 10px 15px; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; margin-right: 10px; }
+        .btn-save { background: #11d694; color: white; padding: 15px 30px; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; margin-top: 20px; width: 100%; }
+        h2 { color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        h4 { margin-top: 0; color: #2c3e50; }
+        label { font-size: 0.9em; font-weight: bold; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="top-nav">
+        <span>Church Management > Data Entry</span>
+        <div>
+            <a href="{{ url_for('dashboard') }}" class="btn-back-main">← Back to Dashboard</a>
+            <a href="{{ url_for('analysis') }}">Analysis</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </div>
+
+    <h2>Bulk Saturday Data Entry</h2>
+    
+    <div style="margin-bottom: 20px; background: white; padding: 20px; border-radius: 8px;">
+        <label style="color: #333;">How many new Saturdays? </label>
+        <input type="number" id="sat_count" min="1" max="10" value="1" style="width: 60px;">
+        
+        <button type="button" class="btn-continue" onclick="continueLastStop()">
+            Continue from Last Stop (Load/Edit)
+        </button>
+
+        <button class="btn-generate" onclick="generateFields()">
+            + Add Blank Fields
+        </button>
+    </div>
+
+    <div id="bulk_container"></div>
+
+    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-top: 5px solid #f1c40f;">
+        <h3 style="margin-top:0;">Global Performance Targets</h3>
+        <label>Target Attendance:</label>
+        <input type="number" id="global_target_att" placeholder="e.g. 200">
+        <label style="margin-left: 20px;">Target Offering:</label>
+        <input type="number" id="global_target_off" placeholder="e.g. 5000">
+        <button type="button" onclick="saveTargets()" style="background:#f1c40f; color:#2c3e50; padding:8px 15px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">
+            Update Targets
+        </button>
+    </div>
+
+    <button id="save_btn" class="btn-save" style="display:none;" onclick="saveAllData()">
+        Save All Changes & View Results
+    </button>
+
+    <script>
+        // All original script functions (continueLastStop, generateFields, saveAllData, etc.) 
+        // are maintained here to ensure functionality does not change.
+        
+        window.onload = async function() {
+            const res = await fetch('/api/get_targets');
+            const data = await res.json();
+            document.getElementById('global_target_att').value = data.target_attendance;
+            document.getElementById('global_target_tit').value = data.target_tithe;
+            document.getElementById('global_target_off').value = data.target_offering;
+        };
+
+        async function saveTargets() {
+            const data = {
+                target_attendance: document.getElementById('global_target_att').value,
+                target_offering: document.getElementById('global_target_tit').value,
+                target_offering: document.getElementById('global_target_0ff').value
+            };
+            await fetch('/api/save_targets', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            alert("Targets updated!");
+        }
+
+        async function continueLastStop() {
+            const res = await fetch('/api/get_data'); // Updated to match your combined Python route
+            const existingData = await res.json();
+            const container = document.getElementById('bulk_container');
+            container.innerHTML = '';
+            existingData.forEach((data) => { addRecordRow(data, true); });
+            document.getElementById('save_btn').style.display = 'block';
+        }
+
+        function generateFields() {
+            const count = document.getElementById('sat_count').value;
+            for (let i = 1; i <= count; i++) { addRecordRow(null, false); }
+            document.getElementById('save_btn').style.display = 'block';
+        }
+
+        function addRecordRow(data = null, isExisting = false) {
+            const container = document.getElementById('bulk_container');
+            const row = document.createElement('div');
+            row.className = 'saturday-row' + (isExisting ? ' existing-record' : '');
+            
+            const satNo = data ? data.saturday_no : "";
+            const men = data ? data.men : "";
+            const women = data ? data.women : "";
+            const youth = data ? data.youth : "";
+            const children = data ? data.children : "";
+            const sunday = data ? data.sunday : "";
+            const tithe = data ? data.tithe : "";
+            const offering = data ? data.offering : "";
+            const fr_amount = data ? data.fr_amount : 0;
+            const fr_type = data ? data.fr_type : 'none';
+
+            row.innerHTML = `
+                <h4>${isExisting ? 'Editing Saturday #' + satNo : 'New Entry'}</h4>
+                <label>Sat No:</label> <input type="date" class="sat_no" value="${satNo}" required ${isExisting ? 'readonly' : ''}>
+                <label>Men:</label> <input type="number" class="men" value="${men}" required>
+                <label>Women:</label> <input type="number" class="women" value="${women}" required>
+                <label>Youth:</label> <input type="number" class="youth" value="${youth}" required>
+                <label>Children:</label> <input type="number" class="children" value="${children}" required>
+                <label>Sunday:</label> <input type="number" class="sunday" value="${sunday}" required>
+                <br>
+                <label>Tithe:</label> <input type="number" class="tithe" value="${tithe}" required>
+                <label>Offering:</label> <input type="number" class="offering" value="${offering}" required>
+                <label>FR Type:</label>
+                <select class="fr_type">
+                    <option value="none" ${fr_type === 'none' ? 'selected' : ''}>No Fundraising</option>
+                    <option value="planned" ${fr_type === 'planned' ? 'selected' : ''}>Planned</option>
+                    <option value="emergency" ${fr_type === 'emergency' ? 'selected' : ''}>Emergency</option>
+                </select>
+                <label>FR Amount:</label> <input type="number" class="fr_amount" value="${fr_amount}">
+            `;
+            container.appendChild(row);
+        }
+
+        async function saveAllData() {
+            const rows = document.querySelectorAll('.saturday-row');
+            const allData = [];
+            rows.forEach(row => {
+                allData.push({
+                    saturday_no: row.querySelector('.sat_no').value,
+                    men: row.querySelector('.men').value,
+                    women: row.querySelector('.women').value,
+                    youth: row.querySelector('.youth').value,
+                    children: row.querySelector('.children').value,
+                    tithe: row.querySelector('.tithe').value,
+                    sunday: row.querySelector('.sunday').value,
+                    offering: row.querySelector('.offering').value,
+                    fr_type: row.querySelector('.fr_type').value,
+                    fr_amount: row.querySelector('.fr_amount').value
+                });
+            });
+
+            const response = await fetch('/api/submit_saturday', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(allData)
+            });
+
+            if (response.ok) {
+                alert("Database updated!");
+                window.location.href = "{{ url_for('analysis') }}";
+            }
+        }
+    </script>
+</body>
+</html>
